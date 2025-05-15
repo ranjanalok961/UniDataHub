@@ -1,0 +1,119 @@
+package com.assignmentwaala.unidatahub.presentation.screens
+
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.assignmentwaala.unidatahub.R
+import kotlinx.coroutines.delay
+
+// Define the primary color
+val PrimaryColor = Color(0xFF3D5AF1)
+
+@Composable
+fun SplashScreen(onSplashComplete: () -> Unit) {
+    // State to control animations
+    var startAnimation by remember { mutableStateOf(false) }
+    val alphaAnim = animateFloatAsState(
+        targetValue = if (startAnimation) 1f else 0f,
+        animationSpec = tween(durationMillis = 1500),
+        label = "alphaAnimation"
+    )
+
+    // Trigger animation after composition
+    LaunchedEffect(key1 = true) {
+        startAnimation = true
+        delay(2500) // Splash screen duration
+        onSplashComplete()
+    }
+
+    // Splash screen content
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(PrimaryColor),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Logo - Replace R.drawable.logo with your actual logo resource
+            Image(
+                painter = painterResource(id = R.drawable.unidatahub),
+                contentDescription = "UniDataHub Logo",
+                modifier = Modifier
+                    .size(120.dp)
+                    .alpha(alphaAnim.value)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // App name
+            Text(
+                text = "UniDataHub",
+                color = Color.White,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.alpha(alphaAnim.value)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Tagline
+            Text(
+                text = "Your Universal Data Solution",
+                color = Color.White.copy(alpha = 0.8f),
+                fontSize = 16.sp,
+                modifier = Modifier.alpha(alphaAnim.value)
+            )
+        }
+    }
+}
+
+// Example usage in MainActivity
+@Composable
+fun SplashScreenDemo() {
+    var showSplash by remember { mutableStateOf(true) }
+
+    if (showSplash) {
+        SplashScreen(onSplashComplete = { showSplash = false })
+    } else {
+        // Navigate to your main screen here
+        MainScreen()
+    }
+}
+
+@Composable
+fun MainScreen() {
+    // Your main app content
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text = "Welcome to UniDataHub")
+    }
+}

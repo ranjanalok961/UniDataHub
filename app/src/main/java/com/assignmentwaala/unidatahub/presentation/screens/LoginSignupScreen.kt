@@ -1,0 +1,494 @@
+package com.assignmentwaala.unidatahub.presentation.screens
+
+import android.util.Log
+import android.widget.Toast
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.tooling.preview.Preview
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.TextStyle
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.assignmentwaala.unidatahub.MainActivity.Companion.TAG
+import com.assignmentwaala.unidatahub.R
+import com.assignmentwaala.unidatahub.common.ACADEMIC_ROLE
+import com.assignmentwaala.unidatahub.common.AuthStatus
+import com.assignmentwaala.unidatahub.presentation.components.DropdownTextField
+import com.assignmentwaala.unidatahub.presentation.viewmodel.AuthViewModel
+
+//@Preview(showBackground = true)
+@Composable
+fun LoginSignupScreen(
+    authViewModel: AuthViewModel,
+    continueAsGuest: () -> Unit = {},
+    onLoginSuccess: () -> Unit = {}
+) {
+    val context = LocalContext.current
+    val authStatus by authViewModel.authStatus.collectAsState()
+
+    // State to track if we're on login or signup screen
+    var isLoginScreen by remember { mutableStateOf(true) }
+
+    var isLoading by remember { mutableStateOf(false) }
+
+
+    // Text field states
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var name by rememberSaveable { mutableStateOf("") }
+    var confirmPassword by rememberSaveable { mutableStateOf("") }
+    var role by rememberSaveable { mutableStateOf("") }
+
+    // Password visibility state
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
+    var confirmPasswordVisible by rememberSaveable { mutableStateOf(false) }
+
+    // Error state
+    var isError by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+
+    // Theme colors
+    val primaryColor = Color(0xFF3D5AF1)
+    val lightPrimaryColor = Color(0xFF627AF5)
+    val gradientColors = listOf(primaryColor, lightPrimaryColor)
+
+    fun isValidEmail(email: String): Boolean {
+        val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
+        return email.matches(emailRegex.toRegex())
+    }
+
+    fun handleLogin() {
+        email = email.trim()
+        if(email.isEmpty() || password.isEmpty()) {
+            Toast.makeText(context, "Please enter email and password", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if(!isValidEmail(email)) {
+            Toast.makeText(context, "Invalid Email", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        authViewModel.login(email = email, password = password)
+    }
+
+    fun handleSignup() {
+        email.trim()
+        if(email.isEmpty() || password.isEmpty() || name.isEmpty() || confirmPassword.isEmpty()) {
+            Toast.makeText(context, "Please enter all fields", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if(!isValidEmail(email)) {
+            Toast.makeText(context, "Invalid Email", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if(password.length < 6) {
+            Toast.makeText(context, "Password must be at least 6 characters", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if(password != confirmPassword) {
+            Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        authViewModel.signup(username = name, email = email, password = password, role = role)
+    }
+
+    LaunchedEffect(authStatus) {
+        when (authStatus) {
+            is AuthStatus.Authenticated -> {
+                Log.d(TAG, "User: ${(authStatus as AuthStatus.Authenticated).user}")
+                onLoginSuccess()
+                isLoading = false
+            }
+            is AuthStatus.Error -> {
+                Toast.makeText(context, (authStatus as AuthStatus.Error).message, Toast.LENGTH_SHORT).show()
+                isLoading = false
+            }
+            is AuthStatus.Loading -> {
+                isLoading = true
+            }
+            is AuthStatus.Unauthenticated -> {
+                isLoading = false
+            }
+            else -> {
+                isLoading = false
+            }
+        }
+    }
+
+
+
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = gradientColors
+                )
+            )
+            .verticalScroll(rememberScrollState()),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // Logo or app name
+            Text(
+                text = if (isLoginScreen) "Welcome Back" else "Create Account",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = if (isLoginScreen) "Sign in to continue" else "Sign up to get started",
+                fontSize = 16.sp,
+                color = Color.White.copy(alpha = 0.7f)
+            )
+
+            Spacer(modifier = Modifier.height(40.dp))
+
+            // Cards for login/signup forms
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Name field (only for signup)
+                    AnimatedVisibility(
+                        visible = !isLoginScreen,
+                        enter = slideInHorizontally(
+                            initialOffsetX = { it },
+                            animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+                        ),
+                        exit = slideOutHorizontally(
+                            targetOffsetX = { it },
+                            animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+                        )
+                    ) {
+                        Column {
+                            OutlinedTextField(
+                                value = name,
+                                onValueChange = { name = it },
+                                label = { Text("Full Name") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = "Name",
+                                        tint = primaryColor
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Text,
+                                    imeAction = ImeAction.Next
+                                ),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = primaryColor,
+                                    unfocusedBorderColor = Color.Gray.copy(alpha = 0.8f),
+                                    focusedLabelColor = primaryColor,
+                                ),
+                                textStyle = TextStyle(color = Color.Black),
+                                singleLine = true
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+                    }
+
+                    // Email field
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = { Text("Email") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Email,
+                                contentDescription = "Email",
+                                tint = primaryColor
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Email,
+                            imeAction = ImeAction.Next
+                        ),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = primaryColor,
+                            unfocusedBorderColor = Color.Gray.copy(alpha = 0.8f),
+                            focusedLabelColor = primaryColor,
+                        ),
+                        textStyle = TextStyle(color = Color.Black),
+                        singleLine = true
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Password field
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text("Password") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = "Password",
+                                tint = primaryColor
+                            )
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(
+                                    imageVector = if (passwordVisible) ImageVector.vectorResource(R.drawable.ic_visibility_off) else ImageVector.vectorResource(R.drawable.ic_visibility),
+                                    contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                                    tint = primaryColor
+                                )
+                            }
+                        },
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = if (isLoginScreen) ImeAction.Done else ImeAction.Next
+                        ),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = primaryColor,
+                            unfocusedBorderColor = Color.Gray.copy(alpha = 0.8f),
+                            focusedLabelColor = primaryColor,
+                        ),
+                        textStyle = TextStyle(color = Color.Black),
+                        singleLine = true
+                    )
+
+                    // Confirm Password field (only for signup)
+                    AnimatedVisibility(
+                        visible = !isLoginScreen,
+                        enter = slideInHorizontally(
+                            initialOffsetX = { it },
+                            animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+                        ),
+                        exit = slideOutHorizontally(
+                            targetOffsetX = { it },
+                            animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+                        )
+                    ) {
+                        Column {
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            OutlinedTextField(
+                                value = confirmPassword,
+                                onValueChange = { confirmPassword = it },
+                                label = { Text("Confirm Password") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Lock,
+                                        contentDescription = "Confirm Password",
+                                        tint = primaryColor
+                                    )
+                                },
+                                trailingIcon = {
+                                    IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                                        Icon(
+                                            imageVector = if (confirmPasswordVisible) ImageVector.vectorResource(R.drawable.ic_visibility_off) else ImageVector.vectorResource(R.drawable.ic_visibility),
+                                            contentDescription = if (confirmPasswordVisible) "Hide password" else "Show password",
+                                            tint = primaryColor
+                                        )
+                                    }
+                                },
+                                visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Password,
+                                    imeAction = ImeAction.Done
+                                ),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = primaryColor,
+                                    unfocusedBorderColor = Color.Gray.copy(alpha = 0.8f),
+                                    focusedLabelColor = primaryColor,
+                                ),
+                                textStyle = TextStyle(color = Color.Black),
+                                singleLine = true
+                            )
+                        }
+                    }
+
+                    AnimatedVisibility(
+                        visible = !isLoginScreen,
+                        enter = slideInHorizontally(
+                            initialOffsetX = { it },
+                            animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+                        ),
+                        exit = slideOutHorizontally(
+                            targetOffsetX = { it },
+                            animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+                        )
+                    ) {
+                        Column {
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            DropdownTextField(
+                                label = "Select Role",
+                                options = ACADEMIC_ROLE,
+                                selectedOption = role,
+                                onOptionSelected = { role = it },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                textStyle = TextStyle(color = Color.Black),
+
+                            )
+                        }
+                    }
+
+                    if (isLoginScreen) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            TextButton(onClick = { /* Handle forgot password */ }) {
+                                Text(
+                                    text = "Forgot Password?",
+                                    color = primaryColor,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Login/Signup button
+                    Button(
+                        onClick = {
+                            if (isLoginScreen) {
+                                handleLogin()
+                            } else {
+                                handleSignup()
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = primaryColor
+                        )
+                    ) {
+                        Text(
+                            text = if (isLoginScreen) "Log In" else "Sign Up",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Continue as guest
+                    Text(
+                        text = "Or",
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Social login buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        // These would typically have icons for social logins
+                        OutlinedButton (
+                            onClick = continueAsGuest,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp),
+                            shape = RoundedCornerShape(12.dp),
+                        ) {
+                            Text(text = "Continue as Guest", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Toggle between login and signup
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (isLoginScreen) "Don't have an account? " else "Already have an account? ",
+                    color = Color.White
+                )
+
+                TextButton(onClick = { isLoginScreen = !isLoginScreen }) {
+                    Text(
+                        text = if (isLoginScreen) "Sign Up" else "Log In",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        if(isLoading) {
+            CircularProgressIndicator()
+        }
+    }
+}

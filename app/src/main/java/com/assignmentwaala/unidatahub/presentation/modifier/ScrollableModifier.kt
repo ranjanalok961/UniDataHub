@@ -1,0 +1,26 @@
+package com.assignmentwaala.unidatahub.presentation.modifier
+
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlinx.coroutines.launch
+
+@Composable
+fun scrollableModifier( isScrollUp: MutableState<Boolean>): Modifier {
+    val scope = rememberCoroutineScope()
+    val scrollableModifier = Modifier.pointerInput(Unit) {
+        detectVerticalDragGestures(
+            onVerticalDrag = { change, dragAmount ->
+                change.consume() // Consume gesture event
+                scope.launch {
+                    isScrollUp.value = dragAmount > 0
+                }
+            },
+        )
+    }
+
+    return scrollableModifier
+}
